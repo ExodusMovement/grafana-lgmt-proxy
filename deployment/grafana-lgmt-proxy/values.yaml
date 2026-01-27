@@ -1,41 +1,74 @@
-replicaCount: 2
+deployment:
+  replicaCount: 2
 
-image:
-  repository: 534042329084.dkr.ecr.us-east-1.amazonaws.com/observability/grafana-lgmt-proxy
-  tag: ""
-  pullPolicy: IfNotPresent
+  name: grafana-lgmt-proxy
 
-service:
-  type: ClusterIP
-  port: 8085
+  service:
+    enabled: true
+    port: 8085
+    targetPort: 8085
 
-resources:
-  requests:
-    cpu: 250m
-    memory: 256Mi
-  limits:
-    cpu: 1000m
-    memory: 512Mi
+  additionalPorts:
+    - containerPort: 8085
+      name: http
+      protocol: TCP
 
-upstreams:
-  prometheus:
-    url: https://prometheus-prod-56-prod-us-east-2.grafana.net
-  loki:
-    url: https://logs-prod-031.grafana.net
-  tempo:
-    url: https://tempo-prod-31-prod-us-east-2.grafana.net
-  otlp:
-    url: https://otlp-gateway-prod-us-east-2.grafana.net
+  image:
+    repository: 534042329084.dkr.ecr.us-east-1.amazonaws.com/observability/grafana-lgmt-proxy
+    command:
+      - /bin/sh
+      - -c
+    args:
+      - secrets-manager-go -- node dist/index.js
 
-serviceAccount:
-  create: true
-  annotations: {}
-  name: ""
+  serviceAccount:
+    enabled: true
 
-podAnnotations: {}
+  globalEnvs:
+    - name: PORT
+      value: "8085"
+    - name: GRAFANA_CLOUD_PROMETHEUS_URL
+      value: "https://prometheus-prod-56-prod-us-east-2.grafana.net"
+    - name: GRAFANA_CLOUD_LOKI_URL
+      value: "https://logs-prod-031.grafana.net"
+    - name: GRAFANA_CLOUD_TEMPO_URL
+      value: "https://tempo-prod-31-prod-us-east-2.grafana.net"
+    - name: GRAFANA_CLOUD_OTLP_URL
+      value: "https://otlp-gateway-prod-us-east-2.grafana.net"
 
-nodeSelector: {}
+  livenessProbe:
+    enabled: true
+    path: /health
+    port: 8085
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
 
-tolerations: []
+  readinessProbe:
+    enabled: true
+    path: /ready
+    port: 8085
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
 
-affinity: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: false
+
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+  containerSecurityContext:
+    readOnlyRootFilesystem: true

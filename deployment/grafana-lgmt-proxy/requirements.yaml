@@ -1,0 +1,5 @@
+dependencies:
+- alias: deployment
+  repository: s3://exodus-ops-ue1/charts
+  name: deployment
+  version: ~1.0.0
