@@ -7,14 +7,13 @@ async function main() {
 
   try {
     await server.listen({ port: config.port, host: '0.0.0.0' })
-    console.log(`Server listening on port ${config.port}`)
   } catch (error) {
     server.log.error(error)
     process.exit(1)
   }
 
   const shutdown = async () => {
-    console.log('Shutting down...')
+    server.log.info('Shutting down...')
     await server.close()
     process.exit(0)
   }
