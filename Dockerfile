@@ -2,7 +2,7 @@ FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amaz
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=secret,id=npm,target=/root/.npmrc pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 

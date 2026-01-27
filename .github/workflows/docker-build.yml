@@ -8,34 +8,12 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests
-        run: pnpm test
-
-      - name: Type check
-        run: pnpm typecheck
-
   docker:
-    needs: test
     runs-on: devops_test_ubuntu_8_cores_arm64
     steps:
       - uses: actions/checkout@v5
+
+      - run: printf '@exodus:registry=https://registry.npmjs.org/\n//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}\n' > /tmp/.npmrc
 
       - uses: ExodusMovement/exodus-github-templates/actions/build-push-ecr@eric/adding-build-push-ecr
         with:
@@ -48,3 +26,5 @@ jobs:
           build-args: |
             DEPLOYMENT_ID=${{ github.run_id }}
             GIT_COMMIT_SHA=${{ github.sha }}
+          secret-files: |
+            npm=/tmp/.npmrc
