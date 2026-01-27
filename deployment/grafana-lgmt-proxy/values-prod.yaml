@@ -1,0 +1,23 @@
+replicaCount: 3
+
+env:
+  KMS_KEY_ALIAS: alias/cmk-grafana-lgmt-proxy-secrets-manager
+
+encryptedValues:
+  GRAFANA_CLOUD_PROMETHEUS_ORG_ID: encrypted_PLACEHOLDER
+  GRAFANA_CLOUD_LOKI_ORG_ID: encrypted_PLACEHOLDER
+  GRAFANA_CLOUD_TEMPO_ORG_ID: encrypted_PLACEHOLDER
+  GRAFANA_CLOUD_OTLP_ORG_ID: encrypted_PLACEHOLDER
+  GRAFANA_CLOUD_ACCESS_TOKEN: encrypted_PLACEHOLDER
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::PROD_ACCOUNT_ID:role/grafana-lgmt-proxy
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 1Gi

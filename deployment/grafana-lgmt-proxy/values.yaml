@@ -1,0 +1,41 @@
+replicaCount: 2
+
+image:
+  repository: 534042329084.dkr.ecr.us-east-1.amazonaws.com/observability/grafana-lgmt-proxy
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8085
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+upstreams:
+  prometheus:
+    url: https://prometheus-prod-56-prod-us-east-2.grafana.net
+  loki:
+    url: https://logs-prod-031.grafana.net
+  tempo:
+    url: https://tempo-prod-31-prod-us-east-2.grafana.net
+  otlp:
+    url: https://otlp-gateway-prod-us-east-2.grafana.net
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
