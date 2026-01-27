@@ -103,6 +103,18 @@ Exodus uses `secrets-manager-go-v2` for hybrid encryption (RSA + AES) of secrets
 2. Stored in Helm values files as `encrypted_*` values
 3. Decrypted at runtime using KMS
 
+### Infrastructure Repository
+
+**All terraform/IRSA changes go in:**
+- **Repo**: `/Users/gio/git/github/ExodusMovement/infra-live`
+- **Branch**: `gio/grafana-lgtm-proxy`
+
+Create this branch before implementing Phase 2/3:
+```bash
+cd /Users/gio/git/github/ExodusMovement/infra-live
+git checkout -b gio/grafana-lgtm-proxy
+```
+
 ### Required Setup
 
 #### 1. Create CMK (Customer Master Key)

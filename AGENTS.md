@@ -30,6 +30,11 @@ Production deployment:
 - IRSA ServiceAccount for KMS decrypt
 - Multi-environment support (dev/stage/prod)
 
+### Infrastructure (Terraform)
+CMK and IRSA changes go in separate repo:
+- **Repo**: `/Users/gio/git/github/ExodusMovement/infra-live`
+- **Branch**: `gio/grafana-lgtm-proxy`
+
 ## Grafana Cloud Endpoints
 
 | Service | Endpoint | Org ID |
