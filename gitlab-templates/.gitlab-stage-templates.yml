@@ -1,0 +1,114 @@
+include:
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: templates.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: base.yml
+
+stages:
+  - pre-deploy-stage
+  - deploy-stage
+
+.stage/diff-rules: &stage_diff_rules
+  rules:
+    - if: $DEPLOY_DISABLED == "true"
+      when: never
+    - if: $STAGE_DEPLOY_DISABLED == "true"
+      when: never
+    - if: $HELM_DIFF_DISABLED == "true"
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never
+
+.stage/deploy-rules: &stage_deploy_rules
+  rules:
+    - if: $DEPLOY_DISABLED == "true"
+      when: never
+    - if: $STAGE_DEPLOY_DISABLED == "true"
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
+
+.stage/pipeline-configs: &stage_pipeline_configs
+  variables:
+    ECR_REPO: $ECR_URI/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}
+    EKS_CLUSTER_NAME: eks-stage-ue1
+  environment:
+    name: stage
+    url: https://exodus-stage.io
+  tags:
+    - stage-runner-eks-scoped
+  allow_failure: false
+
+.stage/setup-script: &stage_setup_script
+  before_script:
+    - AWS_REGION=us-east-1 helm3 repo add exodus s3://exodus-ops-ue1/charts/
+    - helm3 repo add stable https://charts.helm.sh/stable
+    - AWS_REGION=us-east-1 helm3 repo update
+    - cd deployment
+    - AWS_REGION=us-east-1 helm3 dependency update ${PROJECT}
+
+.stage/diff-template: &stage_diff_template
+  <<: *stage_pipeline_configs
+  <<: *stage_diff_rules
+  <<: *stage_setup_script
+  script:
+    - echo Showing diff for ${PROJECT} to ${K8S_NAMESPACES} namespace.
+    - helm3 diff upgrade --namespace "${K8S_NAMESPACES}" --no-color=false --allow-unreleased ${PROJECT} ${PROJECT} -f "${PROJECT}/values-${CI_ENVIRONMENT_NAME}.yaml" --set image.tag="${HELM_IMG_TAG}" --set global.image.tag="${HELM_IMG_TAG}"
+      --set global.gitlab_vars.root_group="$CI_PROJECT_ROOT_NAMESPACE"
+      --set global.gitlab_vars.repository="$CI_PROJECT_NAME"
+      --set global.gitlab_vars.repository_url="$CI_PROJECT_URL"
+      --set global.gitlab_vars.commit="$CI_COMMIT_SHA"
+      --set global.gitlab_vars.commit_short="$CI_COMMIT_SHORT_SHA"
+      --set global.gitlab_vars.commit_timestamp="$CI_COMMIT_TIMESTAMP"
+      --set global.gitlab_vars.commit_author="$CI_COMMIT_AUTHOR"
+      --set global.gitlab_vars.ref_name="$CI_COMMIT_REF_SLUG"
+      --set global.gitlab_vars.default_branch="$CI_DEFAULT_BRANCH"
+      --set global.gitlab_vars.job_started_at="$CI_JOB_STARTED_AT"
+      --set global.gitlab_vars.project_id="$CI_PROJECT_ID";
+
+.stage/deploy-template: &stage_deploy_template
+  <<: *stage_pipeline_configs
+  <<: *stage_deploy_rules
+  <<: *stage_setup_script
+  script:
+    - echo Deploying ${PROJECT} to ${K8S_NAMESPACES} namespace.
+    - helm3 upgrade --wait --namespace "${K8S_NAMESPACES}" ${HELM_OPTIONS} --install ${PROJECT} ${PROJECT} -f "${PROJECT}/values-${CI_ENVIRONMENT_NAME}.yaml" --set image.tag="${HELM_IMG_TAG}" --set global.image.tag="${HELM_IMG_TAG}"
+      --set global.gitlab_vars.root_group="$CI_PROJECT_ROOT_NAMESPACE"
+      --set global.gitlab_vars.repository="$CI_PROJECT_NAME"
+      --set global.gitlab_vars.repository_url="$CI_PROJECT_URL"
+      --set global.gitlab_vars.commit="$CI_COMMIT_SHA"
+      --set global.gitlab_vars.commit_timestamp="$CI_COMMIT_TIMESTAMP"
+      --set global.gitlab_vars.commit_author="$CI_COMMIT_AUTHOR"
+      --set global.gitlab_vars.ref_name="$CI_COMMIT_REF_SLUG"
+      --set global.gitlab_vars.default_branch="$CI_DEFAULT_BRANCH"
+      --set global.gitlab_vars.job_started_at="$CI_JOB_STARTED_AT"
+      --set global.gitlab_vars.project_id="$CI_PROJECT_ID";
+
+stage/diff-grafana-lgmt-proxy:
+  stage: pre-deploy-stage
+  <<: *stage_diff_template
+  variables:
+    PROJECT: grafana-lgmt-proxy
+    K8S_NAMESPACES: observability
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: gitlab-runner-deploy
+
+stage/deploy-grafana-lgmt-proxy:
+  stage: deploy-stage
+  needs: ["stage/diff-grafana-lgmt-proxy"]
+  <<: *stage_deploy_template
+  variables:
+    PROJECT: grafana-lgmt-proxy
+    K8S_NAMESPACES: observability
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: gitlab-runner-deploy

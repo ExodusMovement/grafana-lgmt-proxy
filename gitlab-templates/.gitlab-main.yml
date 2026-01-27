@@ -1,0 +1,186 @@
+include:
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: templates.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: base.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: docker-build-multi-arch.yml
+  - 'gitlab-templates/.gitlab-general-templates.yml'
+
+stages:
+  - test
+  - pre-lint
+  - build-docker
+  - post-build-docker
+  - build-config-for-dev-jobs
+  - create-child-pipeline-config
+  - trigger-child-pipeline
+  - cleanup
+
+variables:
+  DISABLE_CREATE_ECR: "true"
+  DISABLE_CLEANUP: "true"
+  DOCKER_BUILD_ARCH: "multi-arch"
+  DOCKER_BUILD_NPM_TOKEN: "false"
+
+##########
+#  DEV   #
+##########
+.yaml/dev-rules: &yaml_dev_rules
+  rules:
+    - if: $DEV_DEPLOY_DISABLED == 'true'
+      when: never
+    - if: $DEPLOY_DISABLED == 'true'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH != "production"'
+      when: on_success
+    - when: never
+
+build-config-for-dev-jobs:
+  <<: *yaml_dev_rules
+  extends: .yaml/build-config-for-jobs
+  variables:
+    ENV_SLUG: dev
+    BASE_TEMPLATE: "gitlab-templates/.gitlab-dev-templates.yml"
+  artifacts:
+    paths:
+      - generated-dev-config.yml
+  tags:
+    - dev-runner-eks-scoped
+
+trigger-dev-configs:
+  <<: *yaml_dev_rules
+  extends: .yaml/trigger-dynamic-pipeline
+  needs: ["build-config-for-dev-jobs"]
+  variables:
+    ENV_SLUG: dev
+  trigger:
+    include:
+      - artifact: generated-dev-config.yml
+        job: build-config-for-dev-jobs
+
+##########
+#  Stage #
+##########
+.yaml/stage-rules: &yaml_stage_rules
+  rules:
+    - if: $STAGE_DEPLOY_DISABLED == 'true'
+      when: never
+    - if: $DEPLOY_DISABLED == 'true'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never
+
+build-config-for-stage-jobs:
+  <<: *yaml_stage_rules
+  extends: .yaml/build-config-for-jobs
+  variables:
+    ENV_SLUG: stage
+    BASE_TEMPLATE: "gitlab-templates/.gitlab-stage-templates.yml"
+  artifacts:
+    paths:
+      - generated-stage-config.yml
+  tags:
+    - stage-runner-eks-scoped
+
+trigger-stage-configs:
+  <<: *yaml_stage_rules
+  extends: .yaml/trigger-dynamic-pipeline
+  needs: ["build-config-for-stage-jobs"]
+  variables:
+    ENV_SLUG: stage
+  trigger:
+    include:
+      - artifact: generated-stage-config.yml
+        job: build-config-for-stage-jobs
+
+##########
+#  Prod  #
+##########
+.yaml/prod-rules: &yaml_prod_rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: $PROD_DEPLOY_DISABLED == 'true'
+      when: never
+    - if: $DEPLOY_DISABLED == 'true'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "production"'
+      when: on_success
+    - when: never
+
+build-config-for-prod-jobs:
+  <<: *yaml_prod_rules
+  extends: .yaml/build-config-for-jobs
+  variables:
+    ENV_SLUG: prod
+    BASE_TEMPLATE: "gitlab-templates/.gitlab-prod-templates.yml"
+  artifacts:
+    paths:
+      - generated-prod-config.yml
+  tags:
+    - prod-runner-eks-scoped
+
+trigger-prod-configs:
+  <<: *yaml_prod_rules
+  extends: .yaml/trigger-dynamic-pipeline
+  needs: ["build-config-for-prod-jobs"]
+  variables:
+    ENV_SLUG: prod
+  trigger:
+    include:
+      - artifact: generated-prod-config.yml
+        job: build-config-for-prod-jobs
+
+build/docker-multi-arch-x86:
+  extends: .build/docker-multi-arch-x86
+  rules:
+    - if: $BUILD_DISABLED == 'true'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: $DOCKER_BUILD_ARCH == "multi-arch"
+      when: on_success
+    - when: never
+
+build/docker-multi-arch-arm64:
+  extends: .build/docker-multi-arch-arm64
+  rules:
+    - if: $BUILD_DISABLED == 'true'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: $DOCKER_BUILD_ARCH == "multi-arch"
+      when: on_success
+    - when: never
+
+build/docker-multi-arch-stitch:
+  extends: .build/docker-multi-arch-stitch
+  rules:
+    - if: $BUILD_DISABLED == 'true'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"'
+      when: never
+    - if: $DOCKER_BUILD_ARCH == "multi-arch"
+      when: on_success
+    - when: never
