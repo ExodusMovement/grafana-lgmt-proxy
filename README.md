@@ -21,13 +21,22 @@ Intercepts requests to Grafana Cloud endpoints and injects authentication creden
 
 ## Supported Endpoints
 
-| Prefix | Upstream | Description |
-|--------|----------|-------------|
-| `/api/prom/*` | Prometheus | Metrics push |
-| `/prometheus/*` | Prometheus | Query API |
-| `/loki/*` | Loki | Logs |
-| `/tempo/*` | Tempo | Traces |
-| `/otlp/*` | OTLP Gateway | OpenTelemetry |
+| Prefix | Upstream Path | Description |
+|--------|---------------|-------------|
+| `/api/prom/*` | `/api/prom/*` | Metrics remote write (observability-agents) |
+| `/prometheus/*` | `/api/prom/*` | Prometheus query API (kubecost) |
+| `/loki/*` | `/loki/*` | Loki logs API |
+| `/tempo/*` | `/tempo/*` | Tempo traces API |
+| `/otlp/*` | `/otlp/*` | OTLP Gateway (traces, metrics, logs) |
+
+## Grafana Cloud Endpoints
+
+| Service | URL | Org ID |
+|---------|-----|--------|
+| Prometheus | prometheus-prod-56-prod-us-east-2.grafana.net | 2668285 |
+| Loki | logs-prod-036.grafana.net | 1329819 |
+| Tempo | tempo-prod-26-prod-us-east-2.grafana.net | 1324130 |
+| OTLP | otlp-gateway-prod-us-east-2.grafana.net | 1372025 |
 
 ## Quick Start
 
