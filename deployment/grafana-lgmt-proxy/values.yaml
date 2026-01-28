@@ -19,7 +19,12 @@ deployment:
       - /bin/sh
       - -c
     args:
-      - secrets-manager-go -- node dist/index.js
+      - secrets-manager-go --kms-key alias/cmk-grafana-lgmt-proxy-secrets-manager -- node dist/index.js
+
+  encryptionKeys:
+    dev: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
+    stage: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
+    prod: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
 
   serviceAccount:
     enabled: true
