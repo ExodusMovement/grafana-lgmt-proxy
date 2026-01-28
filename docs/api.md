@@ -101,7 +101,7 @@ curl 'http://localhost:8085/prometheus/api/v1/query?query=up'
 }
 ```
 
-**Code anchor:** `src/routes/proxy.ts:71-77`
+**Code anchor:** `src/routes/proxy.ts:71-76`
 
 #### GET /prometheus/api/v1/query_range
 
@@ -248,7 +248,7 @@ curl -X POST http://localhost:8085/otlp/v1/traces \
 {"partialSuccess": {}}
 ```
 
-**Code anchor:** `src/routes/proxy.ts:78-82`
+**Code anchor:** `src/routes/proxy.ts:77-82`
 
 #### POST /otlp/v1/metrics
 

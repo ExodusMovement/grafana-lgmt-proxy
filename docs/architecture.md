@@ -195,10 +195,10 @@ The proxy rewrites incoming paths to match Grafana Cloud API expectations:
 | Incoming Path | Upstream Path | Code Anchor |
 |---------------|---------------|-------------|
 | `/api/prom/*` | `/api/prom/*` | `proxy.ts:64-70` |
-| `/prometheus/*` | `/api/prom/*` | `proxy.ts:71-77` |
+| `/prometheus/*` | `/api/prom/*` | `proxy.ts:71-76` |
 | `/loki/*` | `/loki/*` | `proxy.ts:83-88` |
 | `/tempo/*` | `/tempo/*` | `proxy.ts:89-94` |
-| `/otlp/*` | `/otlp/*` | `proxy.ts:78-82` |
+| `/otlp/*` | `/otlp/*` | `proxy.ts:77-82` |
 
 ## Infrastructure
 
