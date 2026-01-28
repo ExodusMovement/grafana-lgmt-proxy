@@ -9,15 +9,15 @@
 
 ## Executive Summary
 
-| Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 1 |
-| Medium | 3 |
-| Low | 4 |
-| Informational | 3 |
+| Severity | Count | Resolved |
+|----------|-------|----------|
+| Critical | 0 | - |
+| High | 1 | 1 (network policy) |
+| Medium | 3 | 2 (1 fixed, 1 by design) |
+| Low | 4 | 0 |
+| Informational | 3 | 0 |
 
-Overall assessment: The codebase follows security best practices with Zod validation, proper credential handling, and read-only container filesystems. However, several areas require attention, particularly around authentication/authorization of incoming requests and shell injection in the entrypoint script.
+Overall assessment: The codebase follows security best practices with Zod validation, proper credential handling, and read-only container filesystems. Key findings have been addressed through network policies and code fixes.
 
 ---
 
@@ -28,6 +28,7 @@ Overall assessment: The codebase follows security best practices with Zod valida
 **Location:** `src/routes/proxy.ts:14-41`, `src/server.ts:7-24`
 **Category:** Missing Access Control
 **CVSS:** 7.5 (High)
+**Status:** ✅ MITIGATED
 
 **Description:**
 The proxy forwards requests to Grafana Cloud without authenticating the incoming client. Any pod in the Kubernetes cluster with network access to the proxy can send arbitrary metrics, logs, and traces to Grafana Cloud using the organization's credentials.
@@ -48,19 +49,14 @@ A compromised or malicious pod could:
 - Cost amplification via quota exhaustion
 - Audit trail pollution
 
-**Recommendation:**
-```typescript
-// Option 1: Kubernetes NetworkPolicy (infrastructure-level)
-// Restrict ingress to only known consumers
+**Resolution:**
+Mitigated via CiliumNetworkPolicy in [ExodusMovement/network-policies#633](https://github.com/ExodusMovement/network-policies/pull/633).
 
-// Option 2: Bearer token validation (application-level)
-app.addHook('preHandler', async (request, reply) => {
-  const token = request.headers['x-proxy-token']
-  if (!token || token !== config.proxyAuthToken) {
-    reply.code(401).send({ error: 'Unauthorized' })
-  }
-})
-```
+The network policy restricts ingress to only known consumers with specific HTTP method/path combinations:
+- `alloy-metrics` → POST `/api/prom/push`
+- `alloy-receiver` → POST `/otlp/.*`
+- `opencost` → GET `/prometheus/.*`, `/api/prom/.*`
+- `kubecost` → GET `/prometheus/.*`
 
 ---
 
@@ -69,6 +65,7 @@ app.addHook('preHandler', async (request, reply) => {
 **Location:** `entrypoint.sh:5`
 **Category:** Command Injection
 **CVSS:** 5.3 (Medium)
+**Status:** ⚠️ ACCEPTED RISK
 
 **Description:**
 ```bash
@@ -83,22 +80,11 @@ If `secrets-manager-go` outputs: `GRAFANA_CLOUD_TOKEN='$(whoami)'`, the `eval` w
 **Impact:**
 Container compromise if secrets-manager-go is compromised or returns malformed data.
 
-**Recommendation:**
-```bash
-# Safer approach using export directly
-if [ -n "$KMS_KEY_ALIAS" ]; then
-  secrets-manager-go --kms-key "$KMS_KEY_ALIAS" -- env | \
-    grep '^GRAFANA_CLOUD_' | \
-    while IFS='=' read -r key value; do
-      # Validate key format
-      if echo "$key" | grep -qE '^GRAFANA_CLOUD_[A-Z_]+$'; then
-        export "$key=$value"
-      fi
-    done
-fi
-```
-
-Or better: switch to direct invocation pattern that doesn't require shell eval.
+**Risk Acceptance Rationale:**
+- `secrets-manager-go` is a trusted internal binary maintained by the organization
+- Secret values are controlled by us (alphanumeric Grafana Cloud tokens)
+- The `grep GRAFANA_CLOUD` filter limits exposure to only matching keys
+- Practical exploitation requires compromising either the binary or the secrets store
 
 ---
 
@@ -107,30 +93,20 @@ Or better: switch to direct invocation pattern that doesn't require shell eval.
 **Location:** `src/server.ts:8-17`
 **Category:** Information Disclosure
 **CVSS:** 4.3 (Medium)
+**Status:** ✅ FIXED
 
 **Description:**
 The Fastify server has request logging enabled (`disableRequestLogging: false`). While the Authorization header is set in the proxy layer, if debug logging is enabled or logging level is changed, credentials could be logged.
 
-```typescript
-const app = Fastify({
-  logger: {
-    level: 'info',  // Could be changed to 'debug'
-    ...
-  },
-  disableRequestLogging: false,  // Logs request metadata
-})
-```
+**Resolution:**
+Added Pino redact configuration to mask sensitive headers:
 
-**Impact:**
-Credentials exposure in logs if log level is changed to debug.
-
-**Recommendation:**
 ```typescript
-// Add header redaction
 const app = Fastify({
   logger: {
     level: 'info',
-    redact: ['req.headers.authorization', 'res.headers["set-cookie"]'],
+    redact: ['req.headers.authorization', 'req.headers["x-scope-orgid"]'],
+    ...
   },
 })
 ```
@@ -142,6 +118,7 @@ const app = Fastify({
 **Location:** `src/server.ts`, `src/routes/proxy.ts`
 **Category:** Resource Exhaustion
 **CVSS:** 4.3 (Medium)
+**Status:** ℹ️ BY DESIGN
 
 **Description:**
 No explicit body size limits are configured. An attacker could send extremely large payloads to exhaust memory.
@@ -149,13 +126,11 @@ No explicit body size limits are configured. An attacker could send extremely la
 **Impact:**
 Denial of Service via memory exhaustion.
 
-**Recommendation:**
-```typescript
-const app = Fastify({
-  bodyLimit: 10 * 1024 * 1024,  // 10MB limit
-  // ...
-})
-```
+**Design Decision:**
+This is intentional. The proxy handles large metric batches and trace payloads from observability agents. Body size limits are enforced by:
+1. Grafana Cloud upstream (rejects oversized payloads)
+2. Kubernetes resource limits on the pod
+3. Network policies restricting access to trusted consumers only
 
 ---
 
@@ -354,14 +329,14 @@ The following security controls are correctly implemented:
 
 ## Recommendations Summary
 
-| Priority | Finding | Action |
-|----------|---------|--------|
-| P1 | HIGH-001 | Implement NetworkPolicy or app-level auth |
-| P2 | MEDIUM-001 | Refactor entrypoint.sh to avoid eval |
-| P2 | MEDIUM-002 | Add log redaction for sensitive headers |
-| P2 | MEDIUM-003 | Add bodyLimit configuration |
-| P3 | LOW-003 | Consider rate limiting |
-| P3 | INFO-001 | Enforce HTTPS in URL validation |
+| Priority | Finding | Action | Status |
+|----------|---------|--------|--------|
+| P1 | HIGH-001 | Implement NetworkPolicy or app-level auth | ✅ Done ([network-policies#633](https://github.com/ExodusMovement/network-policies/pull/633)) |
+| P2 | MEDIUM-001 | Refactor entrypoint.sh to avoid eval | ⚠️ Accepted Risk |
+| P2 | MEDIUM-002 | Add log redaction for sensitive headers | ✅ Fixed |
+| P2 | MEDIUM-003 | Add bodyLimit configuration | ℹ️ By Design |
+| P3 | LOW-003 | Consider rate limiting | Backlog |
+| P3 | INFO-001 | Enforce HTTPS in URL validation | Backlog |
 
 ---
 

@@ -8,6 +8,7 @@ export async function createServer(config: Config) {
   const app = Fastify({
     logger: {
       level: 'info',
+      redact: ['req.headers.authorization', 'req.headers["x-scope-orgid"]'],
       transport: {
         target: 'pino/file',
         options: { destination: 1 },
