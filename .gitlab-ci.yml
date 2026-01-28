@@ -1,8 +1,28 @@
-include: 'gitlab-templates/.gitlab-main.yml'
+include:
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: templates.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: base.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: docker-build-multi-arch.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: dev-branches-manual.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: dev-master-auto.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: stage-master-manual.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: prod-master-manual.yml
 
 variables:
   DISABLE_CREATE_ECR: "true"
-  DISABLE_CLEANUP: "true"
+  HELM_V3: "true"
   DOCKER_BUILD_ARCH: "multi-arch"
   DOCKER_BUILD_OPTS: "--build-arg GIT_COMMIT_SHA=$CI_COMMIT_SHA --build-arg DEPLOYMENT_ID=$CI_PIPELINE_ID"
-  DOCKER_BUILD_NPM_TOKEN: "false"
