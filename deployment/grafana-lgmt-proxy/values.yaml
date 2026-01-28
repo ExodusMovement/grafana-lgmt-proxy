@@ -30,9 +30,9 @@ deployment:
     - name: GRAFANA_CLOUD_PROMETHEUS_URL
       value: "https://prometheus-prod-56-prod-us-east-2.grafana.net"
     - name: GRAFANA_CLOUD_LOKI_URL
-      value: "https://logs-prod-031.grafana.net"
+      value: "https://logs-prod-036.grafana.net"
     - name: GRAFANA_CLOUD_TEMPO_URL
-      value: "https://tempo-prod-31-prod-us-east-2.grafana.net"
+      value: "https://tempo-prod-26-prod-us-east-2.grafana.net"
     - name: GRAFANA_CLOUD_OTLP_URL
       value: "https://otlp-gateway-prod-us-east-2.grafana.net"
 
