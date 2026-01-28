@@ -14,7 +14,7 @@ deployment:
       protocol: TCP
 
   image:
-    repository: 534042329084.dkr.ecr.us-east-1.amazonaws.com/observability/grafana-lgmt-proxy
+    repository: 534042329084.dkr.ecr.us-east-1.amazonaws.com/developers/grafana-lgmt-proxy
     command:
       - /bin/sh
       - -c
