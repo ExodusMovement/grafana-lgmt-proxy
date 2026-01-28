@@ -1,13 +1,13 @@
-FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node20 AS builder
+FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node24 AS builder
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=secret,id=npm,target=/root/.npmrc pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
-RUN pnpm prune --prod
+RUN rm -rf node_modules && pnpm install --prod --frozen-lockfile
 
-FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node20
+FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node24
 WORKDIR /app
 ARG DEPLOYMENT_ID
 ARG GIT_COMMIT_SHA
