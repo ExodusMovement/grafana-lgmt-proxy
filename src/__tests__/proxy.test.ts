@@ -78,7 +78,7 @@ describe('proxy routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    expect(capturedPath).toBe('/api/v1/query?query=up')
+    expect(capturedPath).toBe('/api/prom/api/v1/query?query=up')
     expect(capturedHeaders['x-scope-orgid']).toBe('prom-tenant')
     expect(capturedHeaders['authorization']).toContain('Basic')
   })

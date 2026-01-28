@@ -72,7 +72,7 @@ export async function registerProxyRoutes(app: FastifyInstance, config: Config):
       prefix: '/prometheus',
       upstream: config.upstreams.prometheus,
       upstreamName: 'prometheus',
-      rewritePrefix: '',
+      rewritePrefix: '/api/prom',
     },
     {
       prefix: '/otlp',
