@@ -22,9 +22,9 @@ deployment:
       - secrets-manager-go --kms-key alias/cmk-grafana-lgmt-proxy-secrets-manager -- node dist/index.js
 
   encryptionKeys:
-    dev: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
-    stage: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
-    prod: "PLACEHOLDER_UPDATE_AFTER_CMK_CREATED"
+    dev: "bc375252eec6ff07d9a5056b0faaf9ed2b451a787310f7ea4db9595ec8f8c2ee"
+    stage: "667c5048f08351325222a86532d0c731e902297c05d959bc929ba922eea11e73"
+    prod: "c36b94e43288614f16193a310eb2681e9b78f6e3e7f262eeb118d9e94bd064fa"
 
   serviceAccount:
     enabled: true
