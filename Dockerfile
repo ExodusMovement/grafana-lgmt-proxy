@@ -18,7 +18,9 @@ COPY --chown=node:node --from=builder /build/node_modules ./node_modules
 COPY --chown=node:node --from=builder /build/package.json ./
 COPY --chown=node:node entrypoint.sh ./
 COPY --from=534042329084.dkr.ecr.us-east-1.amazonaws.com/infrastructure/secrets-manager-go:v2 --chmod=755 /secrets-manager-go /bin/secrets-manager-go
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh && \
+    rm -rf /usr/lib/node_modules/npm /usr/lib/node_modules/yarn && \
+    rm -rf /home/node/.cache /root/.cache
 USER node
 EXPOSE 8085
 ENTRYPOINT ["./entrypoint.sh"]
