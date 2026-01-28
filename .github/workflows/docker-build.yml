@@ -1,0 +1,30 @@
+name: Docker Build
+
+on:
+  push:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  docker:
+    runs-on: devops_test_ubuntu_8_cores_arm64
+    steps:
+      - uses: actions/checkout@v5
+
+      - run: printf '@exodus:registry=https://registry.npmjs.org/\n//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}\n' > /tmp/.npmrc
+
+      - uses: ExodusMovement/exodus-github-templates/actions/build-push-ecr@eric/adding-build-push-ecr
+        with:
+          context: .
+          dockerfile: Dockerfile
+          namespace: observability
+          name: grafana-lgmt-proxy
+          push: true
+          lifecycle-days: 90
+          build-args: |
+            DEPLOYMENT_ID=${{ github.run_id }}
+            GIT_COMMIT_SHA=${{ github.sha }}
+          secret-files: |
+            npm=/tmp/.npmrc

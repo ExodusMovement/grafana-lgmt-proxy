@@ -1,0 +1,8 @@
+include: 'gitlab-templates/.gitlab-main.yml'
+
+variables:
+  DISABLE_CREATE_ECR: "true"
+  DISABLE_CLEANUP: "true"
+  DOCKER_BUILD_ARCH: "multi-arch"
+  DOCKER_BUILD_OPTS: "--build-arg GIT_COMMIT_SHA=$CI_COMMIT_SHA --build-arg DEPLOYMENT_ID=$CI_PIPELINE_ID"
+  DOCKER_BUILD_NPM_TOKEN: "false"

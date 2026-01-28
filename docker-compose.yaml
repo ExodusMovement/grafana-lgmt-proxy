@@ -1,0 +1,24 @@
+services:
+  proxy:
+    build:
+      context: .
+      args:
+        - DEPLOYMENT_ID=local
+        - GIT_COMMIT_SHA=local
+    ports:
+      - "8085:8085"
+    environment:
+      - GRAFANA_CLOUD_PROMETHEUS_URL=https://prometheus-prod-56-prod-us-east-2.grafana.net
+      - GRAFANA_CLOUD_PROMETHEUS_ORG_ID=2668285
+      - GRAFANA_CLOUD_LOKI_URL=https://logs-prod-031.grafana.net
+      - GRAFANA_CLOUD_LOKI_ORG_ID=2668285
+      - GRAFANA_CLOUD_TEMPO_URL=https://tempo-prod-31-prod-us-east-2.grafana.net
+      - GRAFANA_CLOUD_TEMPO_ORG_ID=1324130
+      - GRAFANA_CLOUD_OTLP_URL=https://otlp-gateway-prod-us-east-2.grafana.net
+      - GRAFANA_CLOUD_OTLP_ORG_ID=1372025
+      - GRAFANA_CLOUD_ACCESS_TOKEN=${GRAFANA_CLOUD_ACCESS_TOKEN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

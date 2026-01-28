@@ -1,0 +1,24 @@
+deployment:
+  replicaCount: 3
+
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::PROD_ACCOUNT_ID:role/grafana-lgmt-proxy"
+
+  extraEnvs:
+    - name: AWS_SECRETS_NAMES
+      value: "grafana-lgmt-proxy-secrets"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 1Gi
