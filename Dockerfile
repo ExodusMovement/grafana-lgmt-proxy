@@ -5,6 +5,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=secret,id=npm,target=/root/.npmrc pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
+RUN pnpm prune --prod
 
 FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node20
 WORKDIR /app
