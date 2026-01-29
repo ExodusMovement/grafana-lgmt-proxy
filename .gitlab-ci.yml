@@ -29,3 +29,4 @@ variables:
   HELM_V3: "true"
   DOCKER_BUILD_ARCH: "multi-arch"
   DOCKER_BUILD_OPTS: "--build-arg GIT_COMMIT_SHA=$CI_COMMIT_SHA --build-arg DEPLOYMENT_ID=$CI_PIPELINE_ID"
+  K8S_NAMESPACE: "observability"
