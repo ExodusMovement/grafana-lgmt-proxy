@@ -55,7 +55,7 @@ The proxy uses hybrid encryption (RSA + AES) to store secrets directly in Helm v
    chmod +x /usr/local/bin/secrets-manager-go
    ```
 
-2. Have access to the relevant AWS accounts (dev, stage, prod)
+2. Have access to the relevant AWS accounts (dev, stage, prod, shared)
 
 ### Step-by-Step Process
 
@@ -89,6 +89,14 @@ aws kms get-public-key \
   --query PublicKey --output text \
   | base64 --decode \
   | openssl pkey -pubin -inform DER -out prod.pem
+
+# Shared
+ashared
+aws kms get-public-key \
+  --key-id alias/cmk-grafana-lgmt-proxy-secrets-manager \
+  --query PublicKey --output text \
+  | base64 --decode \
+  | openssl pkey -pubin -inform DER -out shared.pem
 ```
 
 #### 2. Create Secrets File
@@ -124,6 +132,9 @@ secrets-manager-go encrypt --public-key stage.pem --file secrets.env --kv > stag
 
 # Prod
 secrets-manager-go encrypt --public-key prod.pem --file secrets.env --kv > prod-encrypted.txt
+
+# Shared
+secrets-manager-go encrypt --public-key shared.pem --file secrets.env --kv > shared-encrypted.txt
 ```
 
 #### 4. Update Helm Values
@@ -133,6 +144,7 @@ Copy the encrypted values to the respective values files:
 - `deployment/grafana-lgmt-proxy/values-dev.yaml` - use dev-encrypted.txt output
 - `deployment/grafana-lgmt-proxy/values-stage.yaml` - use stage-encrypted.txt output
 - `deployment/grafana-lgmt-proxy/values-prod.yaml` - use prod-encrypted.txt output
+- `deployment/grafana-lgmt-proxy/values-shared.yaml` - use shared-encrypted.txt output
 
 Format in values file:
 ```yaml
@@ -150,8 +162,8 @@ deployment:
 Delete the plaintext secrets file immediately:
 
 ```bash
-rm secrets.env dev-encrypted.txt stage-encrypted.txt prod-encrypted.txt
-rm dev.pem stage.pem prod.pem
+rm secrets.env dev-encrypted.txt stage-encrypted.txt prod-encrypted.txt shared-encrypted.txt
+rm dev.pem stage.pem prod.pem shared.pem
 ```
 
 #### 6. Commit and Deploy
@@ -184,6 +196,7 @@ encryptionKeys:
   dev: "bc375252eec6ff07d9a5056b0faaf9ed2b451a787310f7ea4db9595ec8f8c2ee"
   stage: "667c5048f08351325222a86532d0c731e902297c05d959bc929ba922eea11e73"
   prod: "c36b94e43288614f16193a310eb2681e9b78f6e3e7f262eeb118d9e94bd064fa"
+  shared: "d2d6434fcd97db109fb64849cb5a49c0679fa4a9d226905478745ec57301d93a"
 ```
 
 To regenerate a fingerprint from a public key:
