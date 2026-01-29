@@ -1,12 +1,13 @@
-FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node20 AS builder
+FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node24 AS builder
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=secret,id=npm,target=/root/.npmrc pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
+RUN rm -rf node_modules && pnpm install --prod --frozen-lockfile
 
-FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node20
+FROM 534042329084.dkr.ecr.us-east-1.amazonaws.com/exodus/base-docker-images:amazonlinux2023-node24
 WORKDIR /app
 ARG DEPLOYMENT_ID
 ARG GIT_COMMIT_SHA
@@ -17,7 +18,9 @@ COPY --chown=node:node --from=builder /build/node_modules ./node_modules
 COPY --chown=node:node --from=builder /build/package.json ./
 COPY --chown=node:node entrypoint.sh ./
 COPY --from=534042329084.dkr.ecr.us-east-1.amazonaws.com/infrastructure/secrets-manager-go:v2 --chmod=755 /secrets-manager-go /bin/secrets-manager-go
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh && \
+    rm -rf /usr/lib/node_modules/npm /usr/lib/node_modules/yarn && \
+    rm -rf /home/node/.cache /root/.cache
 USER node
 EXPOSE 8085
 ENTRYPOINT ["./entrypoint.sh"]
