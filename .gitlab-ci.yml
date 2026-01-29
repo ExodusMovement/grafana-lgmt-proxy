@@ -20,6 +20,9 @@ include:
   - project: infrastructure/gitlab-ci-templates
     ref: master
     file: prod-master-manual.yml
+  - project: infrastructure/gitlab-ci-templates
+    ref: master
+    file: shared-master-manual.yml
 
 variables:
   DISABLE_CREATE_ECR: "true"
